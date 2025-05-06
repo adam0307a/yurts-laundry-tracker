@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from "sonner";
 
@@ -22,12 +23,18 @@ export interface Block {
   name: string;
 }
 
+export interface User {
+  username: string;
+  password: string;
+}
+
 interface AppContextType {
   username: string;
   setUsername: (name: string) => void;
   isLoggedIn: boolean;
-  login: (username: string) => void;
+  login: (username: string, password: string) => boolean;
   logout: () => void;
+  register: (username: string, password: string) => boolean;
   blocks: Block[];
   machines: Machine[];
   activeMachine?: Machine;
@@ -76,13 +83,15 @@ const generateMachines = (): Machine[] => {
 };
 
 const STORAGE_KEY = 'laundry_app_data';
+const USERS_STORAGE_KEY = 'laundry_app_users';
 
 const defaultContext: AppContextType = {
   username: '',
   setUsername: () => {},
   isLoggedIn: false,
-  login: () => {},
+  login: () => false,
   logout: () => {},
+  register: () => false,
   blocks,
   machines: [],
   activeMachine: undefined,
@@ -105,6 +114,27 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [machines, setMachines] = useState<Machine[]>([]);
   const [activeMachine, setActiveMachine] = useState<Machine | undefined>(undefined);
   const [selectedBlock, setSelectedBlock] = useState('a');
+  const [users, setUsers] = useState<User[]>([]);
+
+  // Load users from localStorage
+  useEffect(() => {
+    const savedUsers = localStorage.getItem(USERS_STORAGE_KEY);
+    if (savedUsers) {
+      try {
+        setUsers(JSON.parse(savedUsers));
+      } catch (error) {
+        console.error('Failed to parse saved users:', error);
+        setUsers([]);
+      }
+    }
+  }, []);
+
+  // Save users to localStorage when they change
+  useEffect(() => {
+    if (users.length > 0) {
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    }
+  }, [users]);
 
   // Load saved data from localStorage
   useEffect(() => {
@@ -126,11 +156,6 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setMachines(generateMachines());
         }
         
-        if (parsedData.username) {
-          setUsername(parsedData.username);
-          setIsLoggedIn(true);
-        }
-        
         if (parsedData.selectedBlock) {
           setSelectedBlock(parsedData.selectedBlock);
         }
@@ -145,14 +170,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Save data to localStorage when it changes
   useEffect(() => {
-    if (machines.length > 0 || username) {
+    if (machines.length > 0) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         machines,
-        username,
         selectedBlock
       }));
     }
-  }, [machines, username, selectedBlock]);
+  }, [machines, selectedBlock]);
 
   // Check for machines that are finishing
   useEffect(() => {
@@ -211,15 +235,38 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [isLoggedIn]);
 
-  const login = (name: string) => {
-    setUsername(name);
-    setIsLoggedIn(true);
+  const register = (newUsername: string, password: string): boolean => {
+    // Check if username already exists
+    if (users.some(user => user.username === newUsername)) {
+      toast.error('Bu kullanıcı adı zaten alınmış');
+      return false;
+    }
+
+    // Add new user
+    setUsers(prevUsers => [...prevUsers, { username: newUsername, password }]);
+    toast.success('Kayıt başarılı! Giriş yapabilirsiniz');
+    return true;
+  };
+
+  const login = (inputUsername: string, password: string): boolean => {
+    const user = users.find(user => user.username === inputUsername && user.password === password);
+    
+    if (user) {
+      setUsername(inputUsername);
+      setIsLoggedIn(true);
+      toast.success('Giriş başarılı!');
+      return true;
+    } else {
+      toast.error('Kullanıcı adı veya şifre hatalı');
+      return false;
+    }
   };
 
   const logout = () => {
     setUsername('');
     setIsLoggedIn(false);
     setActiveMachine(undefined);
+    toast.info('Çıkış yapıldı');
   };
 
   const startMachine = (machine: Machine, hours: number, minutes: number, note?: string) => {
@@ -301,6 +348,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       isLoggedIn,
       login,
       logout,
+      register,
       blocks,
       machines,
       activeMachine,
