@@ -21,14 +21,14 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { WashingMachine, Power, Timer, Clock } from 'lucide-react';
+import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
 
-const durations = [
-  { value: 30, label: '30 dakika' },
-  { value: 45, label: '45 dakika' },
-  { value: 60, label: '60 dakika' },
-  { value: 90, label: '90 dakika' },
-  { value: 120, label: '120 dakika' },
-];
+interface DurationFormValues {
+  hours: string;
+  minutes: string;
+  note: string;
+}
 
 const MachineDialog: React.FC = () => {
   const { 
@@ -40,22 +40,37 @@ const MachineDialog: React.FC = () => {
     username
   } = useAppContext();
   
-  const [duration, setDuration] = useState<string>('45');
-  const [note, setNote] = useState<string>('');
+  const form = useForm<DurationFormValues>({
+    defaultValues: {
+      hours: '0',
+      minutes: '45',
+      note: '',
+    },
+  });
   
   const isOwner = activeMachine?.user === username;
   const remainingTime = activeMachine ? calculateRemainingTime(activeMachine) : 0;
   
   useEffect(() => {
     if (activeMachine) {
-      setDuration(activeMachine.duration?.toString() || '45');
-      setNote(activeMachine.note || '');
+      if (activeMachine.duration) {
+        const hours = Math.floor(activeMachine.duration / 60).toString();
+        const minutes = (activeMachine.duration % 60).toString();
+        form.setValue('hours', hours);
+        form.setValue('minutes', minutes);
+      } else {
+        form.setValue('hours', '0');
+        form.setValue('minutes', '45');
+      }
+      form.setValue('note', activeMachine.note || '');
     }
-  }, [activeMachine]);
+  }, [activeMachine, form]);
   
-  const handleStartMachine = () => {
+  const handleStartMachine = (data: DurationFormValues) => {
     if (activeMachine) {
-      startMachine(activeMachine, parseInt(duration), note);
+      const hours = parseInt(data.hours) || 0;
+      const minutes = parseInt(data.minutes) || 0;
+      startMachine(activeMachine, hours, minutes, data.note);
     }
   };
   
@@ -70,6 +85,11 @@ const MachineDialog: React.FC = () => {
     if (!date) return '--:--';
     return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   };
+
+  const getMachineTypeLabel = () => {
+    if (!activeMachine) return '';
+    return activeMachine.type === 'washer' ? 'Çamaşır Makinesi' : 'Kurutma Makinesi';
+  };
   
   return (
     <Dialog open={!!activeMachine} onOpenChange={(open) => !open && setActiveMachine(undefined)}>
@@ -79,7 +99,7 @@ const MachineDialog: React.FC = () => {
             <DialogHeader>
               <div className="flex items-center gap-2">
                 <WashingMachine className="h-6 w-6 text-primary" />
-                <DialogTitle>{activeMachine.name} Makinesi</DialogTitle>
+                <DialogTitle>{activeMachine.name} {getMachineTypeLabel()}</DialogTitle>
               </div>
               <DialogDescription>
                 {activeMachine.status === 'available' 
@@ -90,33 +110,53 @@ const MachineDialog: React.FC = () => {
             </DialogHeader>
             
             {activeMachine.status === 'available' ? (
-              <div className="grid gap-4 py-4">
-                <div className="grid items-center gap-2">
-                  <Label htmlFor="duration">Tahmini Süre</Label>
-                  <Select value={duration} onValueChange={setDuration}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Süre seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {durations.map(option => (
-                        <SelectItem key={option.value} value={option.value.toString()}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid items-center gap-2">
-                  <Label htmlFor="note">Not (İsteğe Bağlı)</Label>
-                  <Textarea 
-                    id="note" 
-                    placeholder="Örn: Çarşaf yıkıyorum" 
-                    value={note} 
-                    onChange={(e) => setNote(e.target.value)}
-                  />
-                </div>
-              </div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleStartMachine)} className="space-y-4">
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label>Tahmini Süre</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="hours" className="text-sm">Saat</Label>
+                          <Input
+                            id="hours"
+                            type="number"
+                            min="0"
+                            max="10"
+                            {...form.register('hours')}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="minutes" className="text-sm">Dakika</Label>
+                          <Input
+                            id="minutes"
+                            type="number"
+                            min="0"
+                            max="59"
+                            {...form.register('minutes')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid items-center gap-2">
+                      <Label htmlFor="note">Not (İsteğe Bağlı)</Label>
+                      <Textarea 
+                        id="note"
+                        placeholder="Örn: Çarşaf yıkıyorum" 
+                        {...form.register('note')}
+                      />
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button type="submit" className="w-full">
+                      <Power className="h-4 w-4 mr-2" />
+                      Makineyi Başlat
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             ) : (
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -163,21 +203,14 @@ const MachineDialog: React.FC = () => {
               </div>
             )}
             
-            <DialogFooter>
-              {activeMachine.status === 'available' ? (
-                <Button type="button" className="w-full" onClick={handleStartMachine}>
+            {activeMachine.status !== 'available' && isOwner && (
+              <DialogFooter>
+                <Button type="button" variant="destructive" className="w-full" onClick={handleEndMachine}>
                   <Power className="h-4 w-4 mr-2" />
-                  Makineyi Başlat
+                  İşlemi Sonlandır
                 </Button>
-              ) : (
-                isOwner && (
-                  <Button type="button" variant="destructive" className="w-full" onClick={handleEndMachine}>
-                    <Power className="h-4 w-4 mr-2" />
-                    İşlemi Sonlandır
-                  </Button>
-                )
-              )}
-            </DialogFooter>
+              </DialogFooter>
+            )}
           </>
         )}
       </DialogContent>
