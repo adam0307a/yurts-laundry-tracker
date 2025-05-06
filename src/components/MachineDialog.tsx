@@ -95,11 +95,7 @@ const MachineDialog: React.FC = () => {
       setConfirmEndOpen(false);
     }
   };
-    useEffect(() => {
-    if (activeMachine && activeMachine.status !== 'available' && remainingTime <= 0) {
-      handleEndMachine();
-    }
-  }, [remainingTime, activeMachine, handleEndMachine]);
+   
   const handleToggleExistence = () => {
     if (activeMachine) {
       toggleMachineExistence(activeMachine.id);
