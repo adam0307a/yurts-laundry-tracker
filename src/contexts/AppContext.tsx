@@ -1,8 +1,7 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from "sonner";
 
-export type MachineStatus = 'available' | 'inuse' | 'finishing';
+export type MachineStatus = 'available' | 'inuse' | 'finishing' | 'nonexistent';
 export type MachineType = 'washer' | 'dryer';
 
 export interface Machine {
@@ -38,6 +37,7 @@ interface AppContextType {
   startMachine: (machine: Machine, hours: number, minutes: number, note?: string) => void;
   endMachine: (machineId: string) => void;
   calculateRemainingTime: (machine: Machine) => number;
+  toggleMachineExistence: (machineId: string) => void;
 }
 
 const blocks: Block[] = [
@@ -47,12 +47,12 @@ const blocks: Block[] = [
   { id: 'd', name: 'D Blok' },
 ];
 
-// Generate initial machines for each block
+// Generate initial machines for each block with 16 washers and 7 dryers
 const generateMachines = (): Machine[] => {
   const machines: Machine[] = [];
   blocks.forEach(block => {
-    // Add 5 washers per block
-    for (let i = 1; i <= 5; i++) {
+    // Add 16 washers per block
+    for (let i = 1; i <= 16; i++) {
       machines.push({
         id: `${block.id}w${i}`,
         name: `${block.id.toUpperCase()}W${i}`,
@@ -61,8 +61,8 @@ const generateMachines = (): Machine[] => {
         type: 'washer'
       });
     }
-    // Add 5 dryers per block
-    for (let i = 1; i <= 5; i++) {
+    // Add 7 dryers per block
+    for (let i = 1; i <= 7; i++) {
       machines.push({
         id: `${block.id}d${i}`,
         name: `${block.id.toUpperCase()}D${i}`,
@@ -92,6 +92,7 @@ const defaultContext: AppContextType = {
   startMachine: () => {},
   endMachine: () => {},
   calculateRemainingTime: () => 0,
+  toggleMachineExistence: () => {},
 };
 
 export const AppContext = createContext<AppContextType>(defaultContext);
@@ -252,6 +253,28 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     ));
   };
 
+  const toggleMachineExistence = (machineId: string) => {
+    setMachines(prev => prev.map(m => 
+      m.id === machineId 
+        ? { 
+            ...m, 
+            status: m.status === 'nonexistent' ? 'available' : 'nonexistent',
+            startTime: undefined,
+            endTime: undefined,
+            duration: undefined,
+            note: undefined,
+            user: undefined
+          } 
+        : m
+    ));
+
+    setActiveMachine(undefined);
+    
+    toast("Makine durumu güncellendi", {
+      description: "Makine varlık durumu güncellendi.",
+    });
+  };
+
   const calculateRemainingTime = (machine: Machine): number => {
     if (machine.status !== 'inuse' && machine.status !== 'finishing' || !machine.endTime) {
       return 0;
@@ -277,7 +300,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setSelectedBlock,
       startMachine,
       endMachine,
-      calculateRemainingTime
+      calculateRemainingTime,
+      toggleMachineExistence
     }}>
       {children}
     </AppContext.Provider>

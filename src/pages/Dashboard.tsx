@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import BlockSelector from '../components/BlockSelector';
 import MachineList from '../components/MachineList';
 import MachineDialog from '../components/MachineDialog';
+import { Toaster } from "@/components/ui/toaster";
 
 const Dashboard: React.FC = () => {
   return (
@@ -23,6 +24,7 @@ const Dashboard: React.FC = () => {
         <MachineList />
         <MachineDialog />
       </main>
+      <Toaster />
     </div>
   );
 };

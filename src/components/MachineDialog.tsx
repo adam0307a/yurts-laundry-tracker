@@ -9,6 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +30,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { WashingMachine, Power, Timer, Clock } from 'lucide-react';
+import { WashingMachine, Power, Timer, Clock, AlertTriangle } from 'lucide-react';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 
@@ -37,8 +47,12 @@ const MachineDialog: React.FC = () => {
     startMachine, 
     endMachine,
     calculateRemainingTime,
-    username
+    username,
+    toggleMachineExistence
   } = useAppContext();
+  
+  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [confirmToggleExistenceOpen, setConfirmToggleExistenceOpen] = useState(false);
   
   const form = useForm<DurationFormValues>({
     defaultValues: {
@@ -78,6 +92,14 @@ const MachineDialog: React.FC = () => {
     if (activeMachine) {
       endMachine(activeMachine.id);
       setActiveMachine(undefined);
+      setConfirmEndOpen(false);
+    }
+  };
+  
+  const handleToggleExistence = () => {
+    if (activeMachine) {
+      toggleMachineExistence(activeMachine.id);
+      setConfirmToggleExistenceOpen(false);
     }
   };
   
@@ -92,129 +114,175 @@ const MachineDialog: React.FC = () => {
   };
   
   return (
-    <Dialog open={!!activeMachine} onOpenChange={(open) => !open && setActiveMachine(undefined)}>
-      <DialogContent className="sm:max-w-[425px]">
-        {activeMachine && (
-          <>
-            <DialogHeader>
-              <div className="flex items-center gap-2">
-                <WashingMachine className="h-6 w-6 text-primary" />
-                <DialogTitle>{activeMachine.name} {getMachineTypeLabel()}</DialogTitle>
-              </div>
-              <DialogDescription>
-                {activeMachine.status === 'available' 
-                  ? 'Bu makineyi kullanmak için detayları girin'
-                  : `Durum: ${activeMachine.status === 'finishing' ? 'Bitmek Üzere' : 'Kullanımda'}`
-                }
-              </DialogDescription>
-            </DialogHeader>
-            
-            {activeMachine.status === 'available' ? (
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleStartMachine)} className="space-y-4">
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label>Tahmini Süre</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="hours" className="text-sm">Saat</Label>
-                          <Input
-                            id="hours"
-                            type="number"
-                            min="0"
-                            max="10"
-                            {...form.register('hours')}
-                          />
+    <>
+      <Dialog open={!!activeMachine} onOpenChange={(open) => !open && setActiveMachine(undefined)}>
+        <DialogContent className="sm:max-w-[425px]">
+          {activeMachine && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2">
+                  <WashingMachine className="h-6 w-6 text-primary" />
+                  <DialogTitle>{activeMachine.name} {getMachineTypeLabel()}</DialogTitle>
+                </div>
+                <DialogDescription>
+                  {activeMachine.status === 'available' 
+                    ? 'Bu makineyi kullanmak için detayları girin'
+                    : `Durum: ${activeMachine.status === 'finishing' ? 'Bitmek Üzere' : 'Kullanımda'}`
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              
+              {activeMachine.status === 'available' ? (
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleStartMachine)} className="space-y-4">
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label>Tahmini Süre</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="hours" className="text-sm">Saat</Label>
+                            <Input
+                              id="hours"
+                              type="number"
+                              min="0"
+                              max="10"
+                              {...form.register('hours')}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="minutes" className="text-sm">Dakika</Label>
+                            <Input
+                              id="minutes"
+                              type="number"
+                              min="0"
+                              max="59"
+                              {...form.register('minutes')}
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="minutes" className="text-sm">Dakika</Label>
-                          <Input
-                            id="minutes"
-                            type="number"
-                            min="0"
-                            max="59"
-                            {...form.register('minutes')}
-                          />
-                        </div>
+                      </div>
+                      
+                      <div className="grid items-center gap-2">
+                        <Label htmlFor="note">Not (İsteğe Bağlı)</Label>
+                        <Textarea 
+                          id="note"
+                          placeholder="Örn: Çarşaf yıkıyorum" 
+                          {...form.register('note')}
+                        />
                       </div>
                     </div>
                     
-                    <div className="grid items-center gap-2">
-                      <Label htmlFor="note">Not (İsteğe Bağlı)</Label>
-                      <Textarea 
-                        id="note"
-                        placeholder="Örn: Çarşaf yıkıyorum" 
-                        {...form.register('note')}
-                      />
+                    <DialogFooter className="flex flex-col space-y-2 sm:space-y-0">
+                      <Button type="submit" className="w-full">
+                        <Power className="h-4 w-4 mr-2" />
+                        Makineyi Başlat
+                      </Button>
+                      
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={() => setConfirmToggleExistenceOpen(true)}
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Makine Mevcut Değil
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              ) : (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
+                      <div className="flex items-center mb-2">
+                        <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                        <span className="text-sm text-gray-500">Başlangıç</span>
+                      </div>
+                      <p className="font-medium">{formatTime(activeMachine.startTime)}</p>
+                    </div>
+                    
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
+                      <div className="flex items-center mb-2">
+                        <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                        <span className="text-sm text-gray-500">Bitiş</span>
+                      </div>
+                      <p className="font-medium">{formatTime(activeMachine.endTime)}</p>
                     </div>
                   </div>
                   
-                  <DialogFooter>
-                    <Button type="submit" className="w-full">
-                      <Power className="h-4 w-4 mr-2" />
-                      Makineyi Başlat
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            ) : (
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
                     <div className="flex items-center mb-2">
-                      <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                      <span className="text-sm text-gray-500">Başlangıç</span>
+                      <Timer className="h-4 w-4 mr-2 text-gray-500" />
+                      <span className="text-sm text-gray-500">Kalan Süre</span>
                     </div>
-                    <p className="font-medium">{formatTime(activeMachine.startTime)}</p>
+                    <p className="font-medium">{remainingTime} dakika</p>
                   </div>
+                  
+                  {activeMachine.note && (
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
+                      <div className="flex items-center mb-2">
+                        <span className="text-sm text-gray-500">Not</span>
+                      </div>
+                      <p className="italic">{activeMachine.note}</p>
+                    </div>
+                  )}
                   
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
                     <div className="flex items-center mb-2">
-                      <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                      <span className="text-sm text-gray-500">Bitiş</span>
+                      <span className="text-sm text-gray-500">Kullanıcı</span>
                     </div>
-                    <p className="font-medium">{formatTime(activeMachine.endTime)}</p>
+                    <p>{activeMachine.user}</p>
                   </div>
                 </div>
-                
-                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
-                  <div className="flex items-center mb-2">
-                    <Timer className="h-4 w-4 mr-2 text-gray-500" />
-                    <span className="text-sm text-gray-500">Kalan Süre</span>
-                  </div>
-                  <p className="font-medium">{remainingTime} dakika</p>
-                </div>
-                
-                {activeMachine.note && (
-                  <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
-                    <div className="flex items-center mb-2">
-                      <span className="text-sm text-gray-500">Not</span>
-                    </div>
-                    <p className="italic">{activeMachine.note}</p>
-                  </div>
-                )}
-                
-                <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
-                  <div className="flex items-center mb-2">
-                    <span className="text-sm text-gray-500">Kullanıcı</span>
-                  </div>
-                  <p>{activeMachine.user}</p>
-                </div>
-              </div>
-            )}
-            
-            {activeMachine.status !== 'available' && isOwner && (
-              <DialogFooter>
-                <Button type="button" variant="destructive" className="w-full" onClick={handleEndMachine}>
-                  <Power className="h-4 w-4 mr-2" />
-                  İşlemi Sonlandır
-                </Button>
-              </DialogFooter>
-            )}
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+              )}
+              
+              {activeMachine.status !== 'available' && isOwner && (
+                <DialogFooter>
+                  <Button type="button" variant="destructive" className="w-full" onClick={() => setConfirmEndOpen(true)}>
+                    <Power className="h-4 w-4 mr-2" />
+                    İşlemi Sonlandır
+                  </Button>
+                </DialogFooter>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={confirmEndOpen} onOpenChange={setConfirmEndOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>İşlemi sonlandır</AlertDialogTitle>
+            <AlertDialogDescription>
+              Makine işlemini sonlandırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleEndMachine} className="bg-destructive text-destructive-foreground">
+              Evet, Sonlandır
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={confirmToggleExistenceOpen} onOpenChange={setConfirmToggleExistenceOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Makine Varlığını Değiştir</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu makineyi "Mevcut Değil" olarak işaretlemek istediğinizden emin misiniz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleToggleExistence}>
+              Evet, İşaretle
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

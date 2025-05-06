@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../contexts/AppContext';
 import { Card, CardContent } from '../components/ui/card';
-import { WashingMachine, Check, X, Loader } from 'lucide-react';
+import { WashingMachine, Check, X, Loader, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 import { 
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 
 const MachineList: React.FC = () => {
-  const { machines, selectedBlock, setActiveMachine, calculateRemainingTime } = useAppContext();
+  const { machines, selectedBlock, setActiveMachine, calculateRemainingTime, toggleMachineExistence } = useAppContext();
   const [filterType, setFilterType] = useState<string>('all');
   
   const filteredMachines = machines
@@ -29,6 +29,8 @@ const MachineList: React.FC = () => {
         return <X className="h-4 w-4 text-status-inuse" />;
       case 'finishing':
         return <Loader className="h-4 w-4 text-status-finishing animate-spin" />;
+      case 'nonexistent':
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
       default:
         return null;
     }
@@ -67,6 +69,7 @@ const MachineList: React.FC = () => {
                 "overflow-hidden transition-colors",
                 machine.status === 'available' ? 'border-status-available/30' : 
                 machine.status === 'finishing' ? 'border-status-finishing/30' : 
+                machine.status === 'nonexistent' ? 'border-gray-300' :
                 'border-status-inuse/30'
               )}
             >
@@ -84,17 +87,19 @@ const MachineList: React.FC = () => {
                       "text-sm px-2 py-1 rounded-full",
                       machine.status === 'available' ? 'bg-status-available/10 text-status-available' : 
                       machine.status === 'finishing' ? 'bg-status-finishing/10 text-status-finishing animate-pulse' : 
+                      machine.status === 'nonexistent' ? 'bg-gray-100 text-gray-500' :
                       'bg-status-inuse/10 text-status-inuse'
                     )}>
                       {getStatusIcon(machine.status)}
                       {machine.status === 'available' ? 'Boş' : 
                        machine.status === 'finishing' ? 'Bitmek Üzere' : 
+                       machine.status === 'nonexistent' ? 'Mevcut Değil' :
                        'Kullanımda'}
                     </span>
                   </div>
                 </div>
                 
-                {machine.status !== 'available' && (
+                {machine.status !== 'available' && machine.status !== 'nonexistent' && (
                   <div className="bg-gray-50 dark:bg-gray-800/50 p-4">
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
@@ -126,11 +131,13 @@ const MachineList: React.FC = () => {
                 
                 <div className="p-4 bg-white dark:bg-gray-950 border-t">
                   <Button 
-                    variant={machine.status === 'available' ? "default" : "outline"} 
+                    variant={machine.status === 'nonexistent' ? "outline" : machine.status === 'available' ? "default" : "outline"} 
                     className="w-full"
                     onClick={() => setActiveMachine(machine)}
+                    disabled={machine.status === 'nonexistent'}
                   >
-                    {machine.status === 'available' ? 'Kullan' : 'Detaylar'}
+                    {machine.status === 'available' ? 'Kullan' : 
+                     machine.status === 'nonexistent' ? 'Mevcut Değil' : 'Detaylar'}
                   </Button>
                 </div>
               </CardContent>
