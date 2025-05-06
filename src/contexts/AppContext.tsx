@@ -54,7 +54,7 @@ const generateMachines = (): Machine[] => {
     // Add 16 washers per block
     for (let i = 1; i <= 16; i++) {
       machines.push({
-        id: `${block.id}w${i}`,
+        id: `${block.id}-w-${i}`,
         name: `${block.id.toUpperCase()}W${i}`,
         block: block.id,
         status: 'available',
@@ -64,7 +64,7 @@ const generateMachines = (): Machine[] => {
     // Add 7 dryers per block
     for (let i = 1; i <= 7; i++) {
       machines.push({
-        id: `${block.id}d${i}`,
+        id: `${block.id}-d-${i}`,
         name: `${block.id.toUpperCase()}D${i}`,
         block: block.id,
         status: 'available',
@@ -121,6 +121,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             endTime: machine.endTime ? new Date(machine.endTime) : undefined
           }));
           setMachines(parsedData.machines);
+        } else {
+          // If no machines in saved data, generate them
+          setMachines(generateMachines());
         }
         
         if (parsedData.username) {
@@ -251,6 +254,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } 
         : m
     ));
+    
+    setActiveMachine(undefined);
+    
+    toast("İşlem sonlandırıldı", {
+      description: "Makine kullanıma hazır duruma getirildi.",
+    });
   };
 
   const toggleMachineExistence = (machineId: string) => {

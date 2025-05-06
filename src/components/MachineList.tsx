@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 
 const MachineList: React.FC = () => {
-  const { machines, selectedBlock, setActiveMachine, calculateRemainingTime, toggleMachineExistence } = useAppContext();
+  const { machines, selectedBlock, setActiveMachine, calculateRemainingTime } = useAppContext();
   const [filterType, setFilterType] = useState<string>('all');
   
   const filteredMachines = machines
