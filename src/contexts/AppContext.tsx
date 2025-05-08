@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from "sonner";
 import { supabase, getCurrentUser, getSession, signOut } from '@/integrations/supabase/client';
@@ -21,6 +20,8 @@ export interface Machine {
   user_email?: string;
   created_at?: string;
   updated_at?: string;
+  dislike_count?: number;
+  disliked_by?: string[];
 }
 
 export interface Block {
@@ -136,7 +137,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
         
         if (data) {
-          setMachines(data);
+          // Convert the status string to our MachineStatus type
+          const typedMachines: Machine[] = data.map(machine => ({
+            ...machine,
+            status: machine.status as MachineStatus,
+            type: machine.type as MachineType,
+            id: machine.id || '',
+            name: machine.name || '',
+            block: machine.block || '',
+          }));
+          setMachines(typedMachines);
         }
       } catch (error) {
         console.error('Error in fetchMachines:', error);
@@ -155,10 +165,23 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         table: 'machines' 
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
-          setMachines(prev => [...prev, payload.new as Machine]);
+          const newMachine = payload.new as any;
+          setMachines(prev => [...prev, {
+            ...newMachine,
+            status: newMachine.status as MachineStatus,
+            type: newMachine.type as MachineType,
+            id: newMachine.id || '',
+            name: newMachine.name || '',
+            block: newMachine.block || '',
+          }]);
         } else if (payload.eventType === 'UPDATE') {
+          const updatedMachine = payload.new as any;
           setMachines(prev => prev.map(m => 
-            m.id === payload.new.id ? { ...payload.new as Machine } : m
+            m.id === updatedMachine.id ? {
+              ...updatedMachine,
+              status: updatedMachine.status as MachineStatus,
+              type: updatedMachine.type as MachineType,
+            } : m
           ));
         } else if (payload.eventType === 'DELETE') {
           setMachines(prev => prev.filter(m => m.id !== payload.old.id));
