@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from "sonner";
 import { supabase, getCurrentUser, getSession, signOut } from '@/integrations/supabase/client';
@@ -12,16 +13,16 @@ export interface Machine {
   block: string;
   status: MachineStatus;
   type: MachineType;
-  start_time?: string;
-  end_time?: string;
-  duration?: number;
-  note?: string;
-  user_id?: string;
-  user_email?: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  duration?: number | null;
+  note?: string | null;
+  user_id?: string | null;
+  user_email?: string | null;
   created_at?: string;
-  updated_at?: string;
-  dislike_count?: number;
-  disliked_by?: string[];
+  updated_at?: string | null;
+  dislike_count?: number | null;
+  disliked_by?: string[] | null;
 }
 
 export interface Block {
@@ -44,6 +45,7 @@ interface AppContextType {
   calculateRemainingTime: (machine: Machine) => number;
   toggleMachineExistence: (machineId: string) => Promise<void>;
   loading: boolean;
+  loadingError?: string;
 }
 
 const blocks: Block[] = [
@@ -81,19 +83,26 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [activeMachine, setActiveMachine] = useState<Machine | undefined>(undefined);
   const [selectedBlock, setSelectedBlock] = useState('a');
   const [loading, setLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | undefined>(undefined);
 
   // Initialize auth state from Supabase
   useEffect(() => {
     const initAuth = async () => {
-      const { session } = await getSession();
-      if (session) {
-        const { user: currentUser } = await getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          setIsLoggedIn(true);
+      try {
+        const { session } = await getSession();
+        if (session) {
+          const { user: currentUser } = await getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+            setIsLoggedIn(true);
+          }
         }
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setLoadingError('Kimlik doğrulama sırasında bir hata oluştu.');
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initAuth();
@@ -137,14 +146,22 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
         
         if (data) {
-          // Convert the status string to our MachineStatus type
+          // Convert the status string to our MachineStatus type and handle NULL values
           const typedMachines: Machine[] = data.map(machine => ({
-            ...machine,
-            status: machine.status as MachineStatus,
-            type: machine.type as MachineType,
             id: machine.id || '',
             name: machine.name || '',
             block: machine.block || '',
+            status: (machine.status as MachineStatus) || 'available',
+            type: (machine.type as MachineType) || 'washer',
+            start_time: machine.start_time || null,
+            end_time: machine.end_time || null,
+            duration: machine.duration || null,
+            note: machine.note || null,
+            user_id: machine.user_id || null,
+            user_email: machine.user_email || null,
+            updated_at: machine.updated_at || null,
+            dislike_count: machine.dislike_count || 0,
+            disliked_by: machine.disliked_by || [],
           }));
           setMachines(typedMachines);
         }
@@ -167,20 +184,38 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (payload.eventType === 'INSERT') {
           const newMachine = payload.new as any;
           setMachines(prev => [...prev, {
-            ...newMachine,
-            status: newMachine.status as MachineStatus,
-            type: newMachine.type as MachineType,
             id: newMachine.id || '',
             name: newMachine.name || '',
             block: newMachine.block || '',
+            status: (newMachine.status as MachineStatus) || 'available',
+            type: (newMachine.type as MachineType) || 'washer',
+            start_time: newMachine.start_time || null,
+            end_time: newMachine.end_time || null,
+            duration: newMachine.duration || null,
+            note: newMachine.note || null,
+            user_id: newMachine.user_id || null,
+            user_email: newMachine.user_email || null,
+            updated_at: newMachine.updated_at || null,
+            dislike_count: newMachine.dislike_count || 0,
+            disliked_by: newMachine.disliked_by || [],
           }]);
         } else if (payload.eventType === 'UPDATE') {
           const updatedMachine = payload.new as any;
           setMachines(prev => prev.map(m => 
             m.id === updatedMachine.id ? {
+              ...m,
               ...updatedMachine,
-              status: updatedMachine.status as MachineStatus,
-              type: updatedMachine.type as MachineType,
+              status: (updatedMachine.status as MachineStatus) || m.status,
+              type: (updatedMachine.type as MachineType) || m.type,
+              start_time: updatedMachine.start_time || null,
+              end_time: updatedMachine.end_time || null,
+              duration: updatedMachine.duration || null,
+              note: updatedMachine.note || null,
+              user_id: updatedMachine.user_id || null,
+              user_email: updatedMachine.user_email || null,
+              updated_at: updatedMachine.updated_at || null,
+              dislike_count: updatedMachine.dislike_count || 0,
+              disliked_by: updatedMachine.disliked_by || [],
             } : m
           ));
         } else if (payload.eventType === 'DELETE') {
@@ -392,7 +427,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       endMachine,
       calculateRemainingTime,
       toggleMachineExistence,
-      loading
+      loading,
+      loadingError
     }}>
       {children}
     </AppContext.Provider>
