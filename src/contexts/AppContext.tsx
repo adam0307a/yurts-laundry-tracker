@@ -158,7 +158,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             duration: machine.duration || null,
             note: machine.note || null,
             user_id: machine.user_id || null,
-            user_email: machine.user_email || null,
+            user_email: null, // Add default value for user_email as it might not be in the Supabase data
+            created_at: machine.created_at || new Date().toISOString(),
             updated_at: machine.updated_at || null,
             dislike_count: machine.dislike_count || 0,
             disliked_by: machine.disliked_by || [],
@@ -194,7 +195,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             duration: newMachine.duration || null,
             note: newMachine.note || null,
             user_id: newMachine.user_id || null,
-            user_email: newMachine.user_email || null,
+            user_email: null, // Add default value for user_email
+            created_at: newMachine.created_at || new Date().toISOString(),
             updated_at: newMachine.updated_at || null,
             dislike_count: newMachine.dislike_count || 0,
             disliked_by: newMachine.disliked_by || [],
@@ -204,7 +206,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setMachines(prev => prev.map(m => 
             m.id === updatedMachine.id ? {
               ...m,
-              ...updatedMachine,
+              id: updatedMachine.id || m.id,
+              name: updatedMachine.name || m.name,
+              block: updatedMachine.block || m.block,
               status: (updatedMachine.status as MachineStatus) || m.status,
               type: (updatedMachine.type as MachineType) || m.type,
               start_time: updatedMachine.start_time || null,
@@ -212,8 +216,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               duration: updatedMachine.duration || null,
               note: updatedMachine.note || null,
               user_id: updatedMachine.user_id || null,
-              user_email: updatedMachine.user_email || null,
-              updated_at: updatedMachine.updated_at || null,
+              user_email: m.user_email, // Preserve existing user_email if any
+              created_at: m.created_at,
+              updated_at: updatedMachine.updated_at || m.updated_at,
               dislike_count: updatedMachine.dislike_count || 0,
               disliked_by: updatedMachine.disliked_by || [],
             } : m
