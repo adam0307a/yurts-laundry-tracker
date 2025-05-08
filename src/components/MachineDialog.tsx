@@ -23,13 +23,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 import { WashingMachine, Power, Timer, Clock, AlertTriangle } from 'lucide-react';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
@@ -47,7 +40,7 @@ const MachineDialog: React.FC = () => {
     startMachine, 
     endMachine,
     calculateRemainingTime,
-    username,
+    user,
     toggleMachineExistence
   } = useAppContext();
   
@@ -62,7 +55,7 @@ const MachineDialog: React.FC = () => {
     },
   });
   
-  const isOwner = activeMachine?.user === username;
+  const isOwner = activeMachine?.user_id === user?.id;
   const remainingTime = activeMachine ? calculateRemainingTime(activeMachine) : 0;
   
   useEffect(() => {
@@ -80,38 +73,32 @@ const MachineDialog: React.FC = () => {
     }
   }, [activeMachine, form]);
   
-  const handleStartMachine = (data: DurationFormValues) => {
+  const handleStartMachine = async (data: DurationFormValues) => {
     if (activeMachine) {
       const hours = parseInt(data.hours) || 0;
       const minutes = parseInt(data.minutes) || 0;
-      startMachine(activeMachine, hours, minutes, data.note);
+      await startMachine(activeMachine, hours, minutes, data.note);
     }
   };
   
-  const handleEndMachine = () => {
+  const handleEndMachine = async () => {
     if (activeMachine) {
-      endMachine(activeMachine.id);
+      await endMachine(activeMachine.id);
       setActiveMachine(undefined);
       setConfirmEndOpen(false);
     }
-    
   };
-
-   useEffect(() => {
-    if (activeMachine && activeMachine.status !== 'available' && remainingTime <= 0) {
-      handleEndMachine();
-    }
-  }, [remainingTime, activeMachine, handleEndMachine]);
   
-  const handleToggleExistence = () => {
+  const handleToggleExistence = async () => {
     if (activeMachine) {
-      toggleMachineExistence(activeMachine.id);
+      await toggleMachineExistence(activeMachine.id);
       setConfirmToggleExistenceOpen(false);
     }
   };
   
-  const formatTime = (date?: Date) => {
-    if (!date) return '--:--';
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '--:--';
+    const date = new Date(dateString);
     return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -205,7 +192,7 @@ const MachineDialog: React.FC = () => {
                         <Clock className="h-4 w-4 mr-2 text-gray-500" />
                         <span className="text-sm text-gray-500">Başlangıç</span>
                       </div>
-                      <p className="font-medium">{formatTime(activeMachine.startTime)}</p>
+                      <p className="font-medium">{formatTime(activeMachine.start_time)}</p>
                     </div>
                     
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-md">
@@ -213,7 +200,7 @@ const MachineDialog: React.FC = () => {
                         <Clock className="h-4 w-4 mr-2 text-gray-500" />
                         <span className="text-sm text-gray-500">Bitiş</span>
                       </div>
-                      <p className="font-medium">{formatTime(activeMachine.endTime)}</p>
+                      <p className="font-medium">{formatTime(activeMachine.end_time)}</p>
                     </div>
                   </div>
                   
@@ -238,7 +225,7 @@ const MachineDialog: React.FC = () => {
                     <div className="flex items-center mb-2">
                       <span className="text-sm text-gray-500">Kullanıcı</span>
                     </div>
-                    <p>{activeMachine.user}</p>
+                    <p>{activeMachine.user_email || 'Bilinmeyen Kullanıcı'}</p>
                   </div>
                 </div>
               )}

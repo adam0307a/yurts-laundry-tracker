@@ -36,8 +36,9 @@ const MachineList: React.FC = () => {
     }
   };
   
-  const formatTime = (date?: Date) => {
-    if (!date) return '--:--';
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return '--:--';
+    const date = new Date(dateString);
     return date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   };
   
@@ -104,11 +105,11 @@ const MachineList: React.FC = () => {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <p className="text-gray-500">Başlangıç</p>
-                        <p>{formatTime(machine.startTime)}</p>
+                        <p>{formatTime(machine.start_time)}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Bitiş</p>
-                        <p>{formatTime(machine.endTime)}</p>
+                        <p>{formatTime(machine.end_time)}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Kalan Süre</p>
@@ -116,7 +117,7 @@ const MachineList: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-gray-500">Kullanıcı</p>
-                        <p>{machine.user || '--'}</p>
+                        <p>{machine.user_email || '--'}</p>
                       </div>
                     </div>
                     

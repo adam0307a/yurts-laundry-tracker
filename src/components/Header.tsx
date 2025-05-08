@@ -1,27 +1,61 @@
 
 import React from 'react';
 import { useAppContext } from '../contexts/AppContext';
-import { Button } from '@/components/ui/button';
-import { WashingMachine } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { WashingMachine, LogOut } from 'lucide-react';
+import ThemeSwitcher from './ThemeSwitcher';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header: React.FC = () => {
-  const { username, logout } = useAppContext();
+  const { user, logout } = useAppContext();
+  
+  const getInitials = () => {
+    if (!user?.email) return 'U';
+    return user.email.charAt(0).toUpperCase();
+  };
   
   return (
-    <header className="bg-white dark:bg-gray-950 border-b mb-6">
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <div className="flex items-center">
-          <WashingMachine className="h-6 w-6 text-primary mr-2" />
-          <h1 className="text-lg font-bold">KYK Çamaşırhane Takip</h1>
+    <header className="bg-white dark:bg-gray-900 shadow-sm border-b">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <WashingMachine className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-semibold">KYK Çamaşırhane</h1>
         </div>
         
-        <div className="flex items-center">
-          <span className="mr-4 text-sm text-gray-600 dark:text-gray-400 hidden sm:inline-block">
-            Merhaba, {username}
-          </span>
-          <Button variant="outline" size="sm" onClick={logout}>
-            Çıkış Yap
-          </Button>
+        <div className="flex items-center space-x-2">
+          <ThemeSwitcher />
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.user_metadata?.avatar_url || ""} alt={user?.email || "User"} />
+                  <AvatarFallback>{getInitials()}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.user_metadata?.full_name || user?.email}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Çıkış Yap</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
